@@ -2,6 +2,27 @@
 
 Projeto completo de engenharia de dados com pipeline de ingestão, processamento e análise usando tecnologias AWS e ferramentas open source.
 
+## 📝 Pré-requisitos
+
+- **AWS CLI** configurado com credenciais
+- **Terraform** >= 1.0
+- **Docker** e **Docker Compose**
+- **Git** para versionamento
+- **Python** 3.8+ (para scripts utilitários)
+
+### Configuração Inicial
+```bash
+# Clone do repositório
+git clone <repository-url>
+cd treinamentoDataHandsOnEngDadosAWS
+
+# Configurar AWS CLI
+aws configure
+
+# Verificar credenciais
+aws sts get-caller-identity
+```
+
 ## 🏗️ Arquitetura
 
 ### Componentes Principais:
@@ -12,19 +33,40 @@ Projeto completo de engenharia de dados com pipeline de ingestão, processamento
 - **S3 Tables (Iceberg)** - Data Lake com formato Iceberg
 - **Step Functions** - Orquestração de workflows
 - **OpenSearch** - Busca e analytics em tempo real
+- **EventBridge** - Event-driven architecture
+- **Metabase** - Business Intelligence e dashboards
 
 ## 📁 Estrutura do Projeto
 
 ```
-TreinamentoEngenhariaDados/
+treinamentoDataHandsOnEngDadosAWS/
 ├── terraform/infra/          # Infraestrutura como código
 │   ├── modules/             # Módulos Terraform reutilizáveis
-│   ├── scripts/             # Scripts Glue, Lambda e Step Functions
-│   └── envs/               # Configurações por ambiente
-├── debezium/               # Configuração Debezium + Kafka
-├── opensearch/             # Stack OpenSearch
-├── jars/                   # JARs para Spark e Debezium
-└── scripts/                # Scripts utilitários
+│   │   ├── vpc/            # VPC e networking
+│   │   ├── rds/            # PostgreSQL RDS
+│   │   ├── dms-serverless/ # DMS para CDC
+│   │   ├── glue-job/       # Jobs Glue ETL
+│   │   ├── glue-crawler/   # Crawlers Glue
+│   │   ├── step-functions/ # Orquestração workflows
+│   │   ├── lambda_ecr/     # Lambda com Docker
+│   │   ├── ec2/            # Instâncias EC2
+│   │   └── eventbridge/    # Event-driven architecture
+│   ├── scripts/            # Scripts Glue, Lambda e Step Functions
+│   │   ├── glue_etl/      # Scripts ETL
+│   │   ├── lambda_code_ecr/ # Código Lambda
+│   │   └── bootstrap/      # Scripts inicialização
+│   ├── envs/              # Configurações por ambiente
+│   └── backends/          # Configurações backend Terraform
+├── debezium/              # Configuração Debezium + Kafka
+│   ├── connect-configs/   # Configurações conectores
+│   └── docker-compose.yml # Stack Kafka/Debezium
+├── opensearch/            # Stack OpenSearch
+├── metabase/              # Business Intelligence
+├── jars/                  # JARs para Spark e Debezium
+│   ├── debezium/         # JARs Debezium
+│   └── spark-streaming/  # JARs Spark Streaming
+├── github-actions/        # CI/CD pipelines
+└── scripts/              # Scripts utilitários
 ```
 
 ## 🚀 Módulos Terraform
@@ -67,6 +109,16 @@ TreinamentoEngenhariaDados/
 - Instâncias para processamento
 - Security Groups configurados
 - Bootstrap scripts
+
+### EventBridge (`modules/eventbridge`)
+- Rules para eventos
+- Integração com Lambda
+- Event-driven architecture
+
+### Glue Crawler (`modules/glue-crawler`)
+- Descoberta automática de schemas
+- Catalogação de dados S3
+- Integração com Glue Data Catalog
 
 ## 🔧 Deploy da Infraestrutura
 
@@ -118,6 +170,17 @@ cd debezium
 docker-compose up -d
 ```
 
+### Configurar Conectores
+```bash
+# Conector PostgreSQL para web_events
+curl -X POST http://localhost:8083/connectors \
+  -H "Content-Type: application/json" \
+  -d @connect-configs/postgres.json
+
+# Verificar status
+curl http://localhost:8083/connectors/postgres-connector-ecommerce-final/status
+```
+
 ## 🧪 S3 Tables Iceberg
 
 ### Configurar Connector
@@ -126,14 +189,27 @@ docker-compose up -d
 ./debezium/build-iceberg-s3-connect.sh
 ```
 
-2. Copiar JARs:
+2. Configurar JARs:
 ```bash
-# Connector Iceberg
-/iceberg/kafka-connect/kafka-connect-runtime/build/distributions/iceberg-kafka-connect-runtime-1.10.0-SNAPSHOT.zip
+# JARs Debezium (Avro/Schema Registry)
+cp jars/debezium/* /kafka-connect-debezium/
 
-# JARs Debezium
-cp jars/debezium/* debezium/
+# JARs Spark Streaming (OpenSearch, Kafka, Avro)
+cp jars/spark-streaming/* /spark/jars/
 ```
+
+### JARs Incluídos
+
+#### Debezium (`jars/debezium/`)
+- `kafka-avro-serializer-8.0.0.jar`
+- `kafka-connect-avro-converter-8.0.0.jar`
+- `kafka-schema-registry-client-8.0.0.jar`
+
+#### Spark Streaming (`jars/spark-streaming/`)
+- `opensearch-spark-30_2.12-1.3.0.jar`
+- `spark-sql-kafka-0-10_2.12-3.3.4.jar`
+- `spark-avro_2.12-3.3.4.jar`
+- `kafka-clients-3.5.2.jar`
 
 ## 🔍 OpenSearch
 
@@ -148,6 +224,19 @@ docker-compose up -d
 - **Usuário**: admin
 - **Senha**: admin
 
+## 📊 Metabase
+
+### Deploy
+```bash
+cd metabase
+docker-compose up -d
+```
+
+### Acesso
+- **URL**: http://localhost:3000
+- **Configuração**: Primeira execução requer setup inicial
+- **Banco**: PostgreSQL interno para metadados
+
 ## 📝 Scripts Disponíveis
 
 ### Glue ETL
@@ -157,13 +246,16 @@ docker-compose up -d
 - `*-gdq.py` - Data Quality
 
 ### Spark Streaming
-- `datahandson-engdados-webevents-streaming-kafka-opensearch.py`
+- `datahandson-engdados-webevents-streaming-kafka-opensearch.py` - Streaming Kafka → OpenSearch
 
 ### Lambda
-- `lambda_handler.py` - Queries com DuckDB
+- `lambda_handler.py` - Queries analíticas com DuckDB
+- `build_and_push.sh` - Build e deploy container ECR
+- `Dockerfile` - Container Lambda
 
 ### Utilitários
 - `script-insert-postgres-webfake-events.py` - Geração de dados fake
+- `ec2_bootstrap.sh` - Inicialização instâncias EC2
 
 ## 🛠️ Monitoramento
 
@@ -179,6 +271,53 @@ docker-compose up -d
 ### Glue Jobs
 - Console AWS Glue
 - CloudWatch Metrics
+
+### Kafka + Debezium
+```bash
+# Status conectores
+curl http://localhost:8083/connectors
+
+# Logs
+docker-compose logs -f connect
+```
+
+## 🔧 Troubleshooting
+
+### Debezium
+```bash
+# Verificar conectores
+curl http://localhost:8083/connectors
+
+# Status detalhado
+curl http://localhost:8083/connectors/postgres-connector-ecommerce-final/status
+
+# Reiniciar conector
+curl -X POST http://localhost:8083/connectors/postgres-connector-ecommerce-final/restart
+
+# Logs do Kafka Connect
+docker-compose logs -f connect
+```
+
+### Kafka Topics
+```bash
+# Listar tópics
+docker exec kafka kafka-topics --bootstrap-server localhost:9092 --list
+
+# Consumir mensagens
+docker exec kafka kafka-console-consumer \
+  --bootstrap-server localhost:9092 \
+  --topic ecommercefinal.public.web_events \
+  --from-beginning
+```
+
+### Glue Jobs
+```bash
+# Logs CloudWatch
+aws logs describe-log-groups --log-group-name-prefix "/aws-glue/jobs"
+
+# Status job
+aws glue get-job-run --job-name <job-name> --run-id <run-id>
+```
 
 ## 📋 Variáveis de Ambiente
 
@@ -222,14 +361,32 @@ AWS_SECRET_ACCESS_KEY
 2. **Merge**: Aplica mudanças automaticamente
 3. **Artifacts**: Plan disponível para review
 
+## 🎯 Casos de Uso
+
+### 1. E-commerce Analytics
+- Análise de vendas por categoria
+- Ratings de produtos
+- Comportamento de usuários
+
+### 2. Real-time Streaming
+- Eventos web em tempo real
+- Processamento Kafka → OpenSearch
+- Dashboards interativos
+
+### 3. Data Quality
+- Validação com Great Expectations
+- Monitoramento de qualidade
+- Alertas automáticos
+
 ## 📚 Tecnologias
 
-- **AWS**: RDS, DMS, Glue, Step Functions, Lambda, S3
+- **AWS**: RDS, DMS, Glue, Step Functions, Lambda, S3, EventBridge
 - **Terraform**: Infraestrutura como código
 - **GitHub Actions**: CI/CD pipeline
 - **Apache Kafka**: Streaming de dados
 - **Debezium**: Change Data Capture
 - **Apache Iceberg**: Table format para Data Lake
 - **OpenSearch**: Search e analytics
+- **Metabase**: Business Intelligence
 - **DuckDB**: Analytics engine
 - **Docker**: Containerização

@@ -78,7 +78,7 @@ services:
       - kafka
       - schema-registry
     volumes:
-      - ./connect-plugins:/kafka/connect/libs
+      - ./kafka-connect-debezium:/kafka/libs
 
   connect-confluent:
     image: confluentinc/cp-kafka-connect-base:7.3.0
@@ -91,7 +91,7 @@ services:
     networks:
       - debezium_net
     volumes:
-      - ./kafka-connect:/usr/share/confluent-hub-components/iceberg-kafka-connect
+      - ./kafka-connect-confluent:/usr/share/confluent-hub-components/iceberg-kafka-connect
     environment:
       KAFKA_OPTS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
       CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components/iceberg-kafka-connect

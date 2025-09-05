@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: metabaseappdb
+      POSTGRES_USER: metabaseuser
+      POSTGRES_PASSWORD: metabasepassword
+
+  metabase:
+    image: metabase/metabase
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabaseappdb
+      MB_DB_PORT: 5432
+      MB_DB_USER: metabaseuser
+      MB_DB_PASS: metabasepassword
+      MB_DB_HOST: db # This refers to the 'db' service name in Docker Compose
+    depends_on:
+      - db
+
+volumes:
+  db_data:

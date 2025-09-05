@@ -45,6 +45,13 @@ def transform_data(decoded_df):
         )
         .select("row.*", "op", "ts_ms")
     )
+    
+    from pyspark.sql.functions import col, to_timestamp
+
+    final_df = final_df.withColumn(
+        "event_timestamp",
+        to_timestamp(col("event_timestamp"), "yyyy-MM-dd HH:mm:ss.SSSSSS")
+    )
 
     # Drop colunas que não queremos
     cols_to_drop = [
@@ -55,13 +62,13 @@ def transform_data(decoded_df):
     return final_df.drop(*cols_to_drop)
 
 
-def write_to_opensearch(df, server: str, checkpoint_path: str):
+def write_to_opensearch(df, server: str, checkpoint_path: str, index_opensearch: str):
     return (
         df.writeStream
         .format("opensearch")
         .option("opensearch.nodes", f"https://{server}:9200")
         .option("opensearch.index.auto.create", "true")
-        .option("opensearch.resource", "ecommerce_web_events_dois")
+        .option("opensearch.resource", index_opensearch)
         .option("opensearch.net.http.auth.user", "admin")
         .option("opensearch.net.http.auth.pass", "Mds2025123456")
         .option("opensearch.nodes.wan.only", "true")
@@ -74,11 +81,12 @@ def write_to_opensearch(df, server: str, checkpoint_path: str):
 
 
 def main():
-    SERVER = "ec2-3-132-214-164.us-east-2.compute.amazonaws.com"
+    SERVER = "ec2-3-142-48-245.us-east-2.compute.amazonaws.com"
     topic = "ecommercefinal.public.web_events"
     kafka_bootstrap = f"{SERVER}:29092"
     schema_registry = f"http://{SERVER}:8081"
     checkpoint_path = "s3://cjmm-mds-lake-logs/spark/teste"
+    index_opensearch = "ecommerce_web_events_cinco"
 
     spark = get_spark_context()
     schema_json = get_avro_schema(schema_registry, topic)
@@ -87,7 +95,7 @@ def main():
     decoded_df = decode_avro(kafka_df, schema_json)
     transformed_df = transform_data(decoded_df)
 
-    query = write_to_opensearch(transformed_df, SERVER, checkpoint_path)
+    query = write_to_opensearch(transformed_df, SERVER, checkpoint_path, index_opensearch)
     query.awaitTermination()
 
 
