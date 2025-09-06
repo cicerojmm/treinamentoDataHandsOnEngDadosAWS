@@ -1,7 +1,5 @@
 version: '3.8'
 
-
-
 networks:
   debezium_net:
 
@@ -79,6 +77,7 @@ services:
       - schema-registry
     volumes:
       - ./kafka-connect-debezium:/kafka/libs
+      
 
   connect-confluent:
     image: confluentinc/cp-kafka-connect-base:7.3.0

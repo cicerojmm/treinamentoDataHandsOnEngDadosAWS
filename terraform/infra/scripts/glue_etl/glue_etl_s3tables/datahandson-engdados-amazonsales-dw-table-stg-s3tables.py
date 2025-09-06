@@ -26,7 +26,7 @@ def create_spark_session(s3_warehouse_arn):
 
 
 
-def read_data_csv(spark, file_path):
+def read_data_parquet(spark, file_path):
     # df = spark.read.csv(file_path, header=True, inferSchema=True)
     df = spark.read.parquet(file_path)
     return df
@@ -91,7 +91,7 @@ def main():
     ])
     
     spark = create_spark_session(args['s3_tables_bucket_arn'])
-    df = read_data_csv(spark, args['input_path'])
+    df = read_data_parquet(spark, args['input_path'])
     df = cast_columns(df)
     df = df.dropDuplicates(['product_id'])
     

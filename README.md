@@ -198,6 +198,8 @@ cp jars/debezium/* /kafka-connect-debezium/
 cp jars/spark-streaming/* /spark/jars/
 ```
 
+cp -R /home/ubuntu/debezium/new_iceberg/iceberg/kafka-connect/kafka-connect/src/main/resources/META-INF/services/* /kafka-connect-confluent
+
 ### JARs Incluídos
 
 #### Debezium (`jars/debezium/`)
