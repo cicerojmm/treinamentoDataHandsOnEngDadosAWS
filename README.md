@@ -192,13 +192,12 @@ curl http://localhost:8083/connectors/postgres-connector-ecommerce-final/status
 2. Configurar JARs:
 ```bash
 # JARs Debezium (Avro/Schema Registry)
-cp jars/debezium/* /kafka-connect-debezium/
+cp jars/debezium/* kafka-connect-debezium/
 
-# JARs Spark Streaming (OpenSearch, Kafka, Avro)
-cp jars/spark-streaming/* /spark/jars/
+# JARs do Iceberg
+cp /iceberg/kafka-connect/kafka-connect-runtime/build/distributions/* kafka-connect-confluent
 ```
 
-cp -R /home/ubuntu/debezium/new_iceberg/iceberg/kafka-connect/kafka-connect/src/main/resources/META-INF/services/* /kafka-connect-confluent
 
 ### JARs Incluídos
 
